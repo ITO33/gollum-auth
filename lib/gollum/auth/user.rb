@@ -5,11 +5,11 @@ module Gollum::Auth
   class User
     include ActiveModel::Model
 
-    attr_accessor :username, :password_digest, :name, :email
+    attr_accessor :username, :password_encrypted, :name, :email
 
-    validates_presence_of :username, :password_digest, :name, :email
+    validates_presence_of :username, :password_encrypted, :name, :email
     validates_format_of :username, with: /\A[\w\.-]+\Z/
-    validates_format_of :password_digest, with: /\A[0-9a-f]{64}\Z/
+    validates_format_of :password_encrypted, with: %r!\A[a-zA-Z0-9./]{13}\Z!
 
     class << self
       def find_by_credentials(credentials)
@@ -40,18 +40,14 @@ module Gollum::Auth
     end
 
     def valid_password?(password)
-      Rack::Utils.secure_compare(password_digest, build_digest(password))
+      password.crypt(password_encrypted) == password_encrypted
     end
 
     def password=(password)
-      self.password_digest = build_digest(password.to_s) if password
+      self.password_encrypted = password.crypt(Utils::random_string(2)) if password
     end
 
     private
-
-    def build_digest(password)
-      Digest::SHA256.hexdigest(password)
-    end
 
     def error_message
       errors.full_messages.join(', ')
