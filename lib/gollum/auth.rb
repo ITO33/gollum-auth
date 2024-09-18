@@ -37,8 +37,8 @@ module Gollum
         [
           401,
           {
-            'Content-Type'     => 'text/plain',
-            'WWW-Authenticate' => 'Basic realm="Gollum Wiki"'
+            'content-type'     => 'text/plain',
+            'www-authenticate' => 'Basic realm="Gollum Wiki"'
           },
           [ 'Not authorized' ]
         ]
