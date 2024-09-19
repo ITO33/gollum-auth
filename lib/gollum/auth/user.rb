@@ -3,13 +3,26 @@ module Gollum::Auth
   end
 
   class User
-    include ActiveModel::Model
+    attr_accessor :username, :password_encrypted, :name, :email
 
-    attr_accessor :username, :password_digest, :name, :email
+    # Constructor
+    def initialize(attributes = {})
+      attributes.each do |key, value|
+        public_send("#{key}=", value)
+      end
 
-    validates_presence_of :username, :password_digest, :name, :email
-    validates_format_of :username, with: /\A[\w\.-]+\Z/
-    validates_format_of :password_digest, with: /\A[0-9a-f]{64}\Z/
+      if @name.nil? or @email.nil?
+        raise(InvalidUserError, "Name and email are required")
+      end
+
+      if @username.nil? or @username !~ /\A[\w\.-]+\Z/
+        raise(InvalidUserError, "Bad username format: #{@username}")
+      end
+
+      if @password_encrypted.nil? or @password_encrypted !~ /\A[0-9a-f]{64}\Z/
+        raise(InvalidUserError, "Bad password format: #{@password_encrypted}")
+      end
+    end
 
     class << self
       def find_by_credentials(credentials)
@@ -32,11 +45,13 @@ module Gollum::Auth
     end
 
     def save!
-      save ? self : raise(InvalidUserError, error_message)
+      self.class.all << self
+      self
     end
 
     def save
-      valid? ? (self.class.all << self; true) : false
+      self.class.all << self
+      true
     end
 
     def valid_password?(password)
@@ -51,10 +66,6 @@ module Gollum::Auth
 
     def build_digest(password)
       Digest::SHA256.hexdigest(password)
-    end
-
-    def error_message
-      errors.full_messages.join(', ')
     end
   end
 end
